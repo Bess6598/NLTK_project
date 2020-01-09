@@ -250,10 +250,19 @@ class Corpus:
     #       -MONEY: to find money elements
     #       -PERCENT: to find percent elements
     #       -FACILITY: to find facilities
-    def find_category(self, category):
+    #   content: the word that the sentences must contain, when content = None the method return the
+    #            sentences that contains the category of the all corpus
+    def find_category(self, category, content=None):
         word_list = list()  # lists of the word of the requested category
         output = dict()  # dictionary containing the frequencies of the requested word
-        for node in ne_chunk(self.get_pos_tag()):
+        if content is None:
+            # when the content is not specified the method analyze all the corpus
+            analyzed_text = ne_chunk(self.get_pos_tag())
+        else:
+            # when the content is specified the method analyze just the sentence that contain the content
+            list_to_string = ' '.join([str(elem) for elem in self.find_words(content)])
+            analyzed_text = ne_chunk(pos_tag(word_tokenize(list_to_string)))
+        for node in analyzed_text:
             if category.upper() in str(node):
                 category_word = str(node).replace("/", " ").split()  # parsing the string containing the output
                 temp_output_string = ""
@@ -302,4 +311,4 @@ class Corpus:
             sentences = self.get_sentences()
         else:
             sentences = self.find_words(content)
-        return (min(sentences, key=len), max(sentences, key=len))
+        return min(sentences, key=len), max(sentences, key=len)
