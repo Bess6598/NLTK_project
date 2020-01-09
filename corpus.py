@@ -1,5 +1,7 @@
 import sys
 import codecs
+from typing import Type
+
 import nltk
 import numpy
 from nltk.tokenize import sent_tokenize, word_tokenize
@@ -10,7 +12,7 @@ import math
 import re
 from operator import itemgetter
 
-CONST_INCREMENTAL = 5
+CONST_INCREMENTAL = 1000
 
 
 class Corpus:
@@ -20,7 +22,7 @@ class Corpus:
     token = None  # tokenized copy of the corpus
     sentences = None  # sentence-tokenized copy of the corpus
     pos_tag_universal = None  # pos-tagged (with universal tag) version of the corpus
-    pos_tag = None # pos-tagged version of the corpus
+    pos_tag = None  # pos-tagged version of the corpus
     n_token = None  # number of tokens
     n_sentences = None  # number of sentences
 
@@ -231,23 +233,73 @@ class Corpus:
         for i in freq_bigrams:
             # LMI(<u, v>) = f(<u, v>) * (log2((f<u, v> * N )/ (f(u) * f(v))))
             lmi[i] = freq_bigrams[i] * \
-                     (math.log(((freq_bigrams[i] * len(self.get_pos_tag_universal())) / (freq_word[i[0]] * freq_word[i[1]])), 2))
+                     (math.log(
+                         ((freq_bigrams[i] * len(self.get_pos_tag_universal())) / (freq_word[i[0]] * freq_word[i[1]])),
+                         2))
         lmi = list(sorted(lmi.items(), key=itemgetter(1), reverse=True))
         return lmi
 
-    def human_name(self):
-        chunked = ne_chunk(self.get_pos_tag())
-        for node in chunked:
-            if "PERSON" in str(node):
-                temp = re.sub(r"\(PERSON (\w|.)*/\w* *(\w|.)*/*\w*\ *(\w|.)*/*\w*\)", r"\1\2\3", str(node))
-                print(temp)
-            #if hasattr(node, 'node'):
-                #if "PERSON" == node.node:
-                    #print(node)
-                    #p = ' '.join([part_ne[0] for part_ne in node.leaves()])
-                    #person_dist[p] += 1
-                #elif "GPE" == node.node:
-                    #print(node)
-                    #l = ' '.join([part_ne[0] for part_ne in node.leaves()])
-                    #location_dist[l] += 1
-        #print(ne_tree)
+    # Returns a ordered list (most frequent to less frequent) of the requested category of word
+    # ARGS:
+    #   category:
+    #       -PERSON: to find persons name
+    #       -GPE: to find locations
+    #       -ORGANIZATION: to find organizations
+    #       -DATE: to find dates
+    #       -TIME: to find times
+    #       -MONEY: to find money elements
+    #       -PERCENT: to find percent elements
+    #       -FACILITY: to find facilities
+    def find_category(self, category):
+        word_list = list()  # lists of the word of the requested category
+        output = dict()  # dictionary containing the frequencies of the requested word
+        for node in ne_chunk(self.get_pos_tag()):
+            if category.upper() in str(node):
+                category_word = str(node).replace("/", " ").split()  # parsing the string containing the output
+                temp_output_string = ""
+                for i in range(1, len(category_word), 2):
+                    temp_output_string += (str(category_word[i]) + " ")
+                word_list.append(temp_output_string)
+        for element in word_list:
+            if element not in output:
+                output[element] = 0
+            output[element] += 1
+        return list(sorted(output.items(), key=itemgetter(1), reverse=True))
+
+    # Returns a list of sentences containing the parameter word
+    # PARAM:
+    #   word: word ot be found
+    def find_words(self, word):
+        output = []
+        for sentence in self.get_sentences():
+            if str(sentence).find(str(word)) is not -1:  # when the word isn't in the sentence .find returns -1
+                output.append(sentence)
+        return output
+
+    # Returns a dictionary (keys: name, value: list of sentence) of sentences containing the persons name in the Corpus
+    # PARAM:
+    #   number: number of name to be found (from the ordinated lists of name from more to less frequent)
+    #           when number is None the method return the dictionary of sentence containing every name
+    def sentence_containing_name(self, number=None):
+        if number is not None:
+            names: list = self.find_category("PERSON")[:number]
+        else:
+            names: list = self.find_category("PERSON")
+        output = dict()
+        for name in names:
+            if name[0] not in output:
+                output[name[0]] = list()
+            output[name[0]] += (self.find_words(name[0]))
+        return output
+
+    # Returns a tuple containing as first element the shortest sentence and as second element the longest sentence of
+    # the corpus
+    # PARAM:
+    #   content: the word that the longest and shortest sentence must contain, when content = None the method return the
+    #            longest and shortest sentence of the all corpus
+    def min_max_sentence(self, content=None):
+        if content is None:
+            sentences = self.get_sentences()
+        else:
+            sentences = self.find_words(content)
+        return (min(sentences, key=len), max(sentences, key=len))
