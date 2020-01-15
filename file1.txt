@@ -14,7 +14,7 @@ Title: The Story of Doctor Dolittle
 
 Author: Hugh Lofting
 
-Release Date: May 19, 2016 [EBook #501]
+Release Date: May 19, 2016 [EBook #501] June 23, 2017
 
 Language: English
 
@@ -3839,4 +3839,3 @@ This Web site includes information about Project Gutenberg-tm,
 including how to make donations to the Project Gutenberg Literary
 Archive Foundation, how to help produce our new eBooks, and how to
 subscribe to our email newsletter to hear about new eBooks.
-

@@ -1,7 +1,7 @@
 import sys
 import codecs
 from typing import Type
-
+from datetime import datetime
 import nltk
 import numpy
 from nltk.tokenize import sent_tokenize, word_tokenize
@@ -252,7 +252,7 @@ class Corpus:
     #       -FACILITY: to find facilities
     #   content: the word that the sentences must contain, when content = None the method return the
     #            sentences that contains the category of the all corpus
-    def find_category(self, category, content=None):
+    def find_pos_category(self, category, content=None):
         word_list = list()  # lists of the word of the requested category
         output = dict()  # dictionary containing the frequencies of the requested word
         if content is None:
@@ -285,15 +285,95 @@ class Corpus:
                 output.append(sentence)
         return output
 
+    def find_grammar_category(self, category, content=None):
+        word_list = list()  # list of the word of the requested category
+        output = dict()  # dictionary containing the frequencies of the requested word
+        if content is None:
+            # when the content is not specified the method analyze all the corpus
+            analyzed_text = self.get_pos_tag_universal()
+        else:
+            # when the content is specified the method analyze just the sentence that contain the content
+            list_to_string = ' '.join([str(elem) for elem in self.find_words(content)])
+            analyzed_text = pos_tag(word_tokenize(list_to_string), tagset="universal")
+        for node in analyzed_text:
+            if category.upper() in str(node):
+                word_list.append(node[0])
+        for element in word_list:
+            if element not in output:
+                output[element] = 0
+            output[element] += 1
+        return list(sorted(output.items(), key=itemgetter(1), reverse=True))
+
+    # Returns a list of date in the format specified by the parameter
+    # PARAM:
+    #   format0: first element of the date
+    #   format1: second element of the date
+    #   format2: third element of the date
+    def find_date_format_exp(self, format0, format1, format2):
+        temp_list = list()  # temporary list where the list of strings date is stored
+        output = list()  # list of date
+        list_date_format = {"d": r"([123456789])", "dd": r"(0[123456789]|[12]\d|3[01])",
+                            "mm": r"(0[123456789]|1[012])", "m": r"([123456789])",
+                            "month": r"([Jj]anuary|[Ff]ebruary|[Mm]arch|[Aa]pril|[Mm]ay|[Jj]une|[Jj]uly|[Aa]ugust|[Ss]eptember|[Oo]ctober|[Nn]ovember|[Dd]ecember)",
+                            "abb_month": r"([Jj]an|[Ff]feb|[Mm]ar|[Aa]pr|[Jj]un|[Jj]ul|[Aa]ug|[Ss]ep(t)?|[Oo]ct|[Nn]ov|[Dd]ec).?",
+                            "yyyy": r"(\d\d\d\d)", "yy": r"(\d\d)",
+                            "division": r"( +|/|\-|_|,| ,|, |\. )",
+                            "final_division": r"( +|/|\-|_|,| ,|, |\.|$|\D)",
+                            "initial_division": r"( +|/|\-|_|,| ,|, |\. |^)"}
+        to_date_format = {"d": "%d", "dd": "%d",
+                          "mm": "%m", "m": "%m",
+                          "month": "%B", "abb_month": "%b",
+                          "yyyy": "%Y", "yy": "%y"}
+        #re.findall(r'( +|/|\-|_|,| ,|, |. )([Jj]anuary|[Ff]ebruary|[Mm]arch|[Aa]pril|[Mm]ay|[Jj]une|[Jj]uly|[Aa]ugust|[Ss]eptember|[Oo]ctober|[Nn]ovember|[Dd]ecember)( +|/|\-|_|,| ,|, |. )([123456789])( +|/|\-|_|,| ,|, |. )(\d\d)( +|/|\-|_|,| ,|, |.|\n|\r)', qualcosa)
+        date_list = re.findall(
+            list_date_format["division"] + list_date_format[format0] + list_date_format["division"] + list_date_format[format1] + list_date_format["division"] + list_date_format[format2] + list_date_format["final_division"],
+            self.get_raw())  # parsing with regular expressions looking for date
+        print(date_list)
+        # trasform all date in the same format
+        for date in date_list:
+            temp = ""
+            for element in date:
+                if element is not "":
+                    if len(element) == 1 and element.isdigit():
+                       temp += "0" + element + "-"
+                    elif len(element) != 1 and ("/" and "-" and "_" and "," and " ") not in element:
+                        temp += element + "-"
+            # Sept must be replaced with Sep because strptime can only parse sep
+            temp_list.append(temp[:len(temp)-1].replace("sept", "sep"))  # paste temp-date in the list of dates
+        print(str(temp_list) + str(format0) + str(format1) + str(format2))
+        # Transform string into dateObject
+        for date in temp_list:
+            output.append(datetime.strptime(date, to_date_format[format0] + "-" + to_date_format[format1] + "-" + to_date_format[format2]))
+        return output
+
+    def find_all_date_exp(self):
+        date_list = list()
+        date_format = {"d": "day",
+                       "dd": "day",
+                       "m": "month",
+                       "mm": "month",
+                       "month": "month",
+                       "abb_month": "month",
+                       "yy": "year",
+                       "yyyy": "year"}
+        for x in date_format:
+            for y in date_format:
+                for z in date_format:
+                    if date_format[x] != date_format[y] and date_format[y] != date_format[z] and date_format[x] != date_format[z]:
+                        date_list.extend(self.find_date_format_exp(x, y, z))
+        date_list = list(dict.fromkeys(sorted(date_list)))
+        for i in date_list:
+            print(i)
+
     # Returns a dictionary (keys: name, value: list of sentence) of sentences containing the persons name in the Corpus
     # PARAM:
     #   number: number of name to be found (from the ordinated lists of name from more to less frequent)
     #           when number is None the method return the dictionary of sentence containing every name
     def sentence_containing_name(self, number=None):
         if number is not None:
-            names: list = self.find_category("PERSON")[:number]
+            names: list = self.find_pos_category("PERSON")[:number]
         else:
-            names: list = self.find_category("PERSON")
+            names: list = self.find_pos_category("PERSON")
         output = dict()
         for name in names:
             if name[0] not in output:
