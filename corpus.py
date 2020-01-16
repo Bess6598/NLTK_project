@@ -239,7 +239,7 @@ class Corpus:
         lmi = list(sorted(lmi.items(), key=itemgetter(1), reverse=True))
         return lmi
 
-    # Returns a ordered list (most frequent to less frequent) of the requested category of word
+    # Returns a ordered list (most frequent to less frequent) of the requested category of word and their frequencies
     # ARGS:
     #   category:
     #       -PERSON: to find persons name
@@ -270,21 +270,30 @@ class Corpus:
                     temp_output_string += (str(category_word[i]) + " ")
                 word_list.append(temp_output_string)
         for element in word_list:
-            if element not in output:
-                output[element] = 0
-            output[element] += 1
+            if content is not None and content not in element:
+                # counting the number of time that element occour in the corpus when element and content are
+                #  not the same so that you can find the number of occourence of a pos category excluding the one
+                #  the is set as content to look for
+                output[element] = str(self.get_raw()).count(element[:len(element)-1])
+            elif content is None:
+                output[element] = str(self.get_raw()).count(element[:len(element) - 1])
         return list(sorted(output.items(), key=itemgetter(1), reverse=True))
 
     # Returns a list of sentences containing the parameter word
     # PARAM:
-    #   word: word ot be found
+    #   word: word to be found
     def find_words(self, word):
         output = []
         for sentence in self.get_sentences():
-            if str(sentence).find(str(word)) is not -1:  # when the word isn't in the sentence .find returns -1
+            if str(word[:len(word)-1]) in str(sentence):  # word[:len(word)-1] because NLTK returns name+space
                 output.append(sentence)
         return output
 
+    # Returns an ordinated (decreasing by their frequencies) lists of token of the specified grammar category and their frequencies
+    # PARAM:
+    #   category: the grammar category that the user is looking for
+    #   content: the word that should be in the same sentence as the token of the specified grammar category
+    #           , when content = None the method returns tokens of specified grammar category of the all corpus
     def find_grammar_category(self, category, content=None):
         word_list = list()  # list of the word of the requested category
         output = dict()  # dictionary containing the frequencies of the requested word
@@ -304,66 +313,121 @@ class Corpus:
             output[element] += 1
         return list(sorted(output.items(), key=itemgetter(1), reverse=True))
 
-    # Returns a list of date in the format specified by the parameter
+    # Returns a list of date time object in the format specified by the parameter
     # PARAM:
     #   format0: first element of the date
     #   format1: second element of the date
     #   format2: third element of the date
-    def find_date_format_exp(self, format0, format1, format2):
+    #   content: the word that should be in the same sentence as the dates, when content = None the method return
+    #            dates of the all corpus
+    def find_date_format_regex(self, format0, format1, format2, content=None):
         temp_list = list()  # temporary list where the list of strings date is stored
         output = list()  # list of date
         list_date_format = {"d": r"([123456789])", "dd": r"(0[123456789]|[12]\d|3[01])",
                             "mm": r"(0[123456789]|1[012])", "m": r"([123456789])",
                             "month": r"([Jj]anuary|[Ff]ebruary|[Mm]arch|[Aa]pril|[Mm]ay|[Jj]une|[Jj]uly|[Aa]ugust|[Ss]eptember|[Oo]ctober|[Nn]ovember|[Dd]ecember)",
-                            "abb_month": r"([Jj]an|[Ff]feb|[Mm]ar|[Aa]pr|[Jj]un|[Jj]ul|[Aa]ug|[Ss]ep(t)?|[Oo]ct|[Nn]ov|[Dd]ec).?",
+                            "abb_month": r"([Jj]an|[Ff]feb|[Mm]ar|[Aa]pr|[Jj]un|[Jj]ul|[Aa]ug|[Ss]ep(t)?|[Oo]ct|[Nn]ov|[Dd]ec)\.",
                             "yyyy": r"(\d\d\d\d)", "yy": r"(\d\d)",
                             "division": r"( +|/|\-|_|,| ,|, |\. )",
                             "final_division": r"( +|/|\-|_|,| ,|, |\.|$|\D)",
-                            "initial_division": r"( +|/|\-|_|,| ,|, |\. |^)"}
+                            "initial_division": r"( +|/|\-|_|,| ,|, |\. |^)"}  # parts of regular expression
         to_date_format = {"d": "%d", "dd": "%d",
                           "mm": "%m", "m": "%m",
                           "month": "%B", "abb_month": "%b",
-                          "yyyy": "%Y", "yy": "%y"}
-        #re.findall(r'( +|/|\-|_|,| ,|, |. )([Jj]anuary|[Ff]ebruary|[Mm]arch|[Aa]pril|[Mm]ay|[Jj]une|[Jj]uly|[Aa]ugust|[Ss]eptember|[Oo]ctober|[Nn]ovember|[Dd]ecember)( +|/|\-|_|,| ,|, |. )([123456789])( +|/|\-|_|,| ,|, |. )(\d\d)( +|/|\-|_|,| ,|, |.|\n|\r)', qualcosa)
+                          "yyyy": "%Y", "yy": "%y"}  # used to transform the strings into datetime objects
+        if content is None:
+            string_to_analyze = self.get_raw()
+        else:
+            string_to_analyze = ' '.join([str(elem) for elem in self.find_words(content)])
         date_list = re.findall(
-            list_date_format["division"] + list_date_format[format0] + list_date_format["division"] + list_date_format[format1] + list_date_format["division"] + list_date_format[format2] + list_date_format["final_division"],
-            self.get_raw())  # parsing with regular expressions looking for date
-        print(date_list)
-        # trasform all date in the same format
+            list_date_format["division"] + list_date_format[format0] + list_date_format["division"] + list_date_format[
+                format1] + list_date_format["division"] + list_date_format[format2] + list_date_format[
+                "final_division"],
+            string_to_analyze)  # parsing with regular expressions looking for date
+        # transform all date in the same format (format0-format1-format2)
         for date in date_list:
             temp = ""
             for element in date:
                 if element is not "":
                     if len(element) == 1 and element.isdigit():
-                       temp += "0" + element + "-"
+                        temp += "0" + element + "-"
                     elif len(element) != 1 and ("/" and "-" and "_" and "," and " ") not in element:
                         temp += element + "-"
             # Sept must be replaced with Sep because strptime can only parse sep
-            temp_list.append(temp[:len(temp)-1].replace("sept", "sep"))  # paste temp-date in the list of dates
-        print(str(temp_list) + str(format0) + str(format1) + str(format2))
-        # Transform string into dateObject
+            temp_list.append(temp[:len(temp) - 1].replace("sept", "sep"))  # paste temp-date in the list of dates
+        # Transform string into datetime object
         for date in temp_list:
-            output.append(datetime.strptime(date, to_date_format[format0] + "-" + to_date_format[format1] + "-" + to_date_format[format2]))
+            output.append(datetime.strptime(date, to_date_format[format0] + "-" + to_date_format[format1] + "-" +
+                                            to_date_format[format2]))
+            print(date, format0, format1, format2)
         return output
 
-    def find_all_date_exp(self):
-        date_list = list()
-        date_format = {"d": "day",
-                       "dd": "day",
-                       "m": "month",
-                       "mm": "month",
-                       "month": "month",
-                       "abb_month": "month",
-                       "yy": "year",
-                       "yyyy": "year"}
+    # Returns an ordinated (decreasing by their frequencies) lists of datetime object and their frequencies
+    # PARAM:
+    #   content: the word that should be in the same sentence as the dates, when content = None the method return
+    #            dates of the all corpus
+    def find_all_date_regex(self, content=None):
+        date_list = list()  # lists of datetime object returned by find_date_format_regex()
+        output = dict()  # dict containing as key the datetime object and as value the frequencies of the key
+        date_format = {"d": "day", "dd": "day",
+                       "m": "month", "mm": "month",
+                       "month": "month", "abb_month": "month",
+                       "yy": "year", "yyyy": "year"}  # possible value for find_date_format_regex
         for x in date_format:
             for y in date_format:
                 for z in date_format:
-                    if date_format[x] != date_format[y] and date_format[y] != date_format[z] and date_format[x] != date_format[z]:
-                        date_list.extend(self.find_date_format_exp(x, y, z))
-        date_list = list(dict.fromkeys(sorted(date_list)))
-        for i in date_list:
-            print(i)
+                    if date_format[x] != date_format[y] and date_format[y] != date_format[z] and date_format[x] != \
+                            date_format[z]:
+                        date_list.extend(self.find_date_format_regex(x, y, z, content))
+        for date in date_list:
+            if date not in output:
+                output[date] = 0
+            output[date] += 1
+        return list(sorted(output.items(), key=itemgetter(1), reverse=True))
+
+    # Returns an ordinated (decreasing by their frequencies) lists of month as strings and their frequencies
+    # PARAM:
+    #   content: the word that should be in the same sentence as the month, when content = None the method return
+    #           month of the all corpus
+    def find_month_regex(self, content=None):
+        output = dict()
+        if content is None:
+            string_to_analyze = self.get_raw()
+        else:
+            string_to_analyze = ' '.join([str(elem) for elem in self.find_words(content)])
+        month_list = re.findall(
+            r"([Jj]anuary|[Ff]ebruary|[Mm]arch|[Aa]pril|[Mm]ay|[Jj]une|[Jj]uly|[Aa]ugust|[Ss]eptember|[Oo]ctober|[Nn]ovember|[Dd]ecember)",
+            string_to_analyze)  # parsing with regular expressions looking for complete months names
+        month_list.extend(re.findall(
+            r"([Jj]an|[Ff]feb|[Mm]ar|[Aa]pr|[Jj]un|[Jj]ul|[Aa]ug|[Ss]ep(t)?|[Oo]ct|[Nn]ov|[Dd]ec)\.",
+            string_to_analyze))  # parsing with regular expressions looking for abbreviated months names
+        for month in month_list:
+            if month not in output:
+                output[month] = 0
+            output[month] += 1
+        return list(sorted(output.items(), key=itemgetter(1), reverse=True))
+
+    # Returns an ordinated (decreasing by their frequencies) lists of day of the week as strings and their frequencies
+    # PARAM:
+    #   content: the word that should be in the same sentence as the day of the week, when content = None
+    #           the method return day of the week of the all corpus
+    def find_day_week_regex(self, content=None):
+        output = dict()
+        if content is None:
+            string_to_analyze = self.get_raw()
+        else:
+            string_to_analyze = ' '.join([str(elem) for elem in self.find_words(content)])
+        month_list = re.findall(
+            r"([Mm]onday|[Tt]uesday|[Ww]ednesday|[Ff]riday|[Ss]aturday|[Ss]unday)",
+            string_to_analyze)  # parsing with regular expressions looking for complete months names
+        month_list.extend(re.findall(
+            r"([Mm]on|[Tt]ue|[Ww]ed|[Ff]ri|[Ss]at|[Ss]un)\.",
+            string_to_analyze))  # parsing with regular expressions looking for abbreviated months names
+        for month in month_list:
+            if month not in output:
+                output[month] = 0
+            output[month] += 1
+        return list(sorted(output.items(), key=itemgetter(1), reverse=True))
 
     # Returns a dictionary (keys: name, value: list of sentence) of sentences containing the persons name in the Corpus
     # PARAM:

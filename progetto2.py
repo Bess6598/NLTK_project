@@ -10,10 +10,6 @@ def exec(file_name1, file_name2):
     # Output file
     output = open("output_prj2" + datetime.datetime.now().strftime("%y_%m_%d_%H_%M_%S") + ".txt", "w+", encoding='utf8')
 
-    corpus1.find_all_date_exp()
-    print("\nFINE INIZIO\n")
-    corpus2.find_all_date_exp()
-
     # 10 most frequent person's name in Corpus1:
     utils.print_array_file(output, "10 more frequent person's name in " + corpus1.get_name(),
                            corpus1.find_pos_category("PERSON")[:10])
@@ -31,9 +27,9 @@ def exec(file_name1, file_name2):
         utils.print_array_file(output,
                                "Places contained in sentences that also contain " + key + " in " + corpus1.get_name(),
                                corpus1.find_pos_category("GPE", key)[:10], True)
-        # Name contained in sentences that also contain key (name)
+        # Other name contained in sentences that also contain key (name)
         utils.print_array_file(output,
-                               "Persons name contained in sentences that also contain " + key + " in " + corpus1.get_name(),
+                               "Other person's name contained in sentences that also contain " + key + " in " + corpus1.get_name(),
                                corpus1.find_pos_category("PERSON", key)[:10], True)
         # Noun contained in sentences that also contain key (name)
         utils.print_array_file(output,
@@ -43,6 +39,18 @@ def exec(file_name1, file_name2):
         utils.print_array_file(output,
                                "Verbs contained in sentences that also contain " + key + " in " + corpus1.get_name(),
                                corpus1.find_grammar_category("VERB", key)[:10], True)
+        # Dates contained in sentences that also contain key (name)
+        utils.print_array_file(output,
+                               "Dates contained in sentences that also contain " + key + " in " + corpus1.get_name(),
+                               corpus1.find_all_date_regex(key), True)
+        # Months names contained in sentences that also contain key (name)
+        utils.print_array_file(output,
+                               "Months names contained in sentences that also contain " + key + " in " + corpus1.get_name(),
+                               corpus1.find_month_regex(key))
+        # Months names contained in sentences that also contain key (name)
+        utils.print_array_file(output,
+                               "Day of the week contained in sentences that also contain " + key + " in " + corpus1.get_name(),
+                               corpus1.find_day_week_regex(key))
 
     # 10 most frequent person's name in corpus 2:
     utils.print_array_file(output, "10 more frequent person's name in " + corpus2.get_name(),
@@ -58,11 +66,12 @@ def exec(file_name1, file_name2):
         utils.print_var_file(output, "Longest sentence that contain " + key + " in " + corpus2.get_name(),
                              corpus2.min_max_sentence(key)[1], True)
         # Places contained in sentences that also contain key (name)
-        utils.print_array_file(output, "Places contained in sentences that also contain " + key + " in " + corpus2.get_name(),
-                               corpus2.find_pos_category("GPE", key)[:10], True)
-        # Name contained in sentences that also contain key (name)
         utils.print_array_file(output,
-                               "Persons name contained in sentences that also contain " + key + " in " + corpus2.get_name(),
+                               "Places contained in sentences that also contain " + key + " in " + corpus2.get_name(),
+                               corpus2.find_pos_category("GPE", key)[:10], True)
+        # Other name contained in sentences that also contain key (name)
+        utils.print_array_file(output,
+                               "Other person's name contained in sentences that also contain " + key + " in " + corpus2.get_name(),
                                corpus2.find_pos_category("PERSON", key)[:10], True)
         # Noun contained in sentences that also contain key (name)
         utils.print_array_file(output,
@@ -72,8 +81,19 @@ def exec(file_name1, file_name2):
         utils.print_array_file(output,
                                "Verbs contained in sentences that also contain " + key + " in " + corpus2.get_name(),
                                corpus2.find_grammar_category("VERB", key)[:10], True)
+        # Dates contained in sentences that also contain key (name)
+        utils.print_array_file(output,
+                               "Dates contained in sentences that also contain " + key + " in " + corpus2.get_name(),
+                               corpus2.find_all_date_regex(key), True)
+        # Months names contained in sentences that also contain key (name)
+        utils.print_array_file(output,
+                               "Months names contained in sentences that also contain " + key + " in " + corpus2.get_name(),
+                               corpus2.find_month_regex(key))
+        # Months names contained in sentences that also contain key (name)
+        utils.print_array_file(output,
+                               "Day of the week contained in sentences that also contain " + key + " in " + corpus2.get_name(),
+                               corpus2.find_day_week_regex(key))
 
-    #   date, mesi, giorni della settimana (con espressioni regolari) (ordine decrescente)
     #   frase lunga minimo 8 e massimo 12 token con probabilità più alta (Markovv di ordine 0, che usa la distribuzione di frequenza estratte dall'intero libro)find_category
     output.close()
 
