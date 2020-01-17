@@ -10,6 +10,7 @@ def exec(file_name1, file_name2):
     # Output file
     output = open("output_prj2" + datetime.datetime.now().strftime("%y_%m_%d_%H_%M_%S") + ".txt", "w+", encoding='utf8')
 
+    corpus1.probability_markov0()
     # 10 most frequent person's name in Corpus1:
     utils.print_array_file(output, "10 more frequent person's name in " + corpus1.get_name(),
                            corpus1.find_pos_category("PERSON")[:10])

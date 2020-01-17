@@ -274,7 +274,7 @@ class Corpus:
                 # counting the number of time that element occour in the corpus when element and content are
                 #  not the same so that you can find the number of occourence of a pos category excluding the one
                 #  the is set as content to look for
-                output[element] = str(self.get_raw()).count(element[:len(element)-1])
+                output[element] = str(self.get_raw()).count(element[:len(element) - 1])
             elif content is None:
                 output[element] = str(self.get_raw()).count(element[:len(element) - 1])
         return list(sorted(output.items(), key=itemgetter(1), reverse=True))
@@ -285,7 +285,7 @@ class Corpus:
     def find_words(self, word):
         output = []
         for sentence in self.get_sentences():
-            if str(word[:len(word)-1]) in str(sentence):  # word[:len(word)-1] because NLTK returns name+space
+            if str(word[:len(word) - 1]) in str(sentence):  # word[:len(word)-1] because NLTK returns name+space
                 output.append(sentence)
         return output
 
@@ -456,3 +456,15 @@ class Corpus:
         else:
             sentences = self.find_words(content)
         return min(sentences, key=len), max(sentences, key=len)
+
+    # Returns an ordinated list containing sentences and their markov's probability
+    def probability_markov0(self):
+        prob = 1.0  # initial probability
+        freq = nltk.FreqDist(self.get_token())  # frequency of every token in the corpus
+        output = dict()
+        for sentence in self.get_sentences():
+            tokens = word_tokenize(sentence)
+            for token in tokens:
+                prob *= (freq[token] * 1.0 / self.get_n_token() * 1.0)
+            output[sentence] = prob
+        return list(sorted(output.items(), key=itemgetter(1), reverse=True))
