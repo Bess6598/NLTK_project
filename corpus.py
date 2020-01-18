@@ -448,8 +448,8 @@ class Corpus:
     # Returns a tuple containing as first element the shortest sentence and as second element the longest sentence of
     # the corpus
     # PARAM:
-    #   content: the word that the longest and shortest sentence must contain, when content = None the method return the
-    #            longest and shortest sentence of the all corpus
+    #   content: the word that the longest and shortest sentences must contain, when content = None the method return the
+    #            longest and shortest sentences of the all corpus
     def min_max_sentence(self, content=None):
         if content is None:
             sentences = self.get_sentences()
@@ -457,14 +457,26 @@ class Corpus:
             sentences = self.find_words(content)
         return min(sentences, key=len), max(sentences, key=len)
 
-    # Returns an ordinated list containing sentences and their markov's probability
-    def probability_markov0(self):
-        prob = 1.0  # initial probability
+    # Returns an ordinated (more probable to less probable) list containing sentences and their markov's (order 0) probability
+    # PARAM:
+    #   content: the word that the sentence must contain, when None the method return the sentences of the all corpus
+    #   min_length: the minimum length (in tokens) of the sentences,
+    #               when None the method return the sentences of the all corpus
+    #   max_length: the maximum length (in tokens) of the sentences,
+    #               when None the method return the sentences of the all corpus
+    def probability_markov0(self, content=None, min_length=None, max_length=None):
         freq = nltk.FreqDist(self.get_token())  # frequency of every token in the corpus
         output = dict()
-        for sentence in self.get_sentences():
+        if content is None:
+            sentences = self.get_sentences()
+        else:
+            sentences = self.find_words(content)
+        for sentence in sentences:
+            prob = 1.0  # initial probability
             tokens = word_tokenize(sentence)
-            for token in tokens:
-                prob *= (freq[token] * 1.0 / self.get_n_token() * 1.0)
-            output[sentence] = prob
+            print(len(tokens), tokens, "\n")
+            if (min_length <= len(tokens) <= max_length) or (min_length is None and max_length is None) or (min_length is None and len(tokens) <= max_length) or (min_length <= len(tokens) and max_length is None):
+                for token in tokens:
+                    prob *= (freq[token] * 1.0 / self.get_n_token() * 1.0)
+                output[sentence] = prob
         return list(sorted(output.items(), key=itemgetter(1), reverse=True))

@@ -10,7 +10,6 @@ def exec(file_name1, file_name2):
     # Output file
     output = open("output_prj2" + datetime.datetime.now().strftime("%y_%m_%d_%H_%M_%S") + ".txt", "w+", encoding='utf8')
 
-    corpus1.probability_markov0()
     # 10 most frequent person's name in Corpus1:
     utils.print_array_file(output, "10 more frequent person's name in " + corpus1.get_name(),
                            corpus1.find_pos_category("PERSON")[:10])
@@ -52,8 +51,12 @@ def exec(file_name1, file_name2):
         utils.print_array_file(output,
                                "Day of the week contained in sentences that also contain " + key + " in " + corpus1.get_name(),
                                corpus1.find_day_week_regex(key))
+        # Sentences (8<length<12) frequencies calculated using Markov's method that also contain key (name)
+        utils.print_array_file(output,
+                               "Sentences (8 tokens < length < 12 tokens) frequencies calculated using Markov's method that also contain " + key + " in " + corpus1.get_name(),
+                               corpus1.probability_markov0(key, 8, 12), True)
 
-    # 10 most frequent person's name in corpus 2:
+        # 10 most frequent person's name in corpus 2:
     utils.print_array_file(output, "10 more frequent person's name in " + corpus2.get_name(),
                            corpus2.find_pos_category("PERSON")[:10])
     # Iterating the 10 most frequent person's name of corpus2
@@ -94,8 +97,11 @@ def exec(file_name1, file_name2):
         utils.print_array_file(output,
                                "Day of the week contained in sentences that also contain " + key + " in " + corpus2.get_name(),
                                corpus2.find_day_week_regex(key))
+        # Sentences (8<length<12) frequencies calculated using Markov's method that also contain key (name)
+        utils.print_array_file(output,
+                               "Sentences (8 tokens < length < 12 tokens) frequencies calculated using Markov's method that also contain " + key + " in " + corpus2.get_name(),
+                               corpus2.probability_markov0(key, 8, 12), True)
 
-    #   frase lunga minimo 8 e massimo 12 token con probabilità più alta (Markovv di ordine 0, che usa la distribuzione di frequenza estratte dall'intero libro)find_category
     output.close()
 
 
