@@ -51,9 +51,9 @@ def exec(file_name1, file_name2):
         utils.print_array_file(output,
                                "Day of the week contained in sentences that also contain " + key + " in " + corpus1.get_name(),
                                corpus1.find_day_week_regex(key))
-        # Sentences (8<length<12) frequencies calculated using Markov's method that also contain key (name)
+        # Sentences (8<length<12) with frequencies calculated using Markov's method that also contain key (name)
         utils.print_array_file(output,
-                               "Sentences (8 tokens < length < 12 tokens) frequencies calculated using Markov's method that also contain " + key + " in " + corpus1.get_name(),
+                               "Sentences (8 tokens < length < 12 tokens) with frequencies calculated using Markov's method that also contain " + key + " in " + corpus1.get_name(),
                                corpus1.probability_markov0(key, 8, 12), True)
 
         # 10 most frequent person's name in corpus 2:
@@ -97,9 +97,9 @@ def exec(file_name1, file_name2):
         utils.print_array_file(output,
                                "Day of the week contained in sentences that also contain " + key + " in " + corpus2.get_name(),
                                corpus2.find_day_week_regex(key))
-        # Sentences (8<length<12) frequencies calculated using Markov's method that also contain key (name)
+        # Sentences (8<length<12) with frequencies calculated using Markov's method that also contain key (name)
         utils.print_array_file(output,
-                               "Sentences (8 tokens < length < 12 tokens) frequencies calculated using Markov's method that also contain " + key + " in " + corpus2.get_name(),
+                               "Sentences (8 tokens < length < 12 tokens) with frequencies calculated using Markov's method that also contain " + key + " in " + corpus2.get_name(),
                                corpus2.probability_markov0(key, 8, 12), True)
 
     output.close()

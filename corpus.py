@@ -12,8 +12,6 @@ import math
 import re
 from operator import itemgetter
 
-CONST_INCREMENTAL = 1000
-
 
 class Corpus:
     name = None  # name of file and corpus
@@ -34,15 +32,6 @@ class Corpus:
         temp = codecs.open(self.name, "r", "utf-8-sig")
         self.raw = temp.read().lower()
         self.nltk_ = nltk.data.load("tokenizers/punkt/english.pickle")
-
-        # Copyright Simone Martelli
-        # tmp1 = self.nltk_.tokenize(self.raw)
-        # l = 0
-        # for t in tmp1:
-        #   l = l + len(nltk.word_tokenize(t))
-        # tmp2 = len(nltk.word_tokenize(self.raw))
-        # print(l)
-        # print(tmp2)
 
     # Getter and setter methods
     def get_name(self):
@@ -110,70 +99,84 @@ class Corpus:
     # Returns the arithmetic mean of number of tokens in the sentences of the corpus.
     def mean_sentences(self):
         temp = []
-        for i in self.get_sentences():
-            temp.append(len(word_tokenize(i)))
+        for sentence in self.get_sentences():
+            temp.append(len(word_tokenize(sentence)))
         return statistics.mean(temp)
 
     # Returns the arithmetic mean of number of letters in the tokens of the corpus.
     def mean_token(self):
         temp = []
-        for i in self.get_token():
-            temp.append(len(i))
+        for token in self.get_token():
+            temp.append(len(token))
         return statistics.mean(temp)
 
     # Returns the vocabulary length of the corpus (given corpus dimension)
     # Args:
-    #   dimension: length of the corpus whose vocabulary is measured
+    #   dimension: length of the corpus whose vocabulary is measured, when
+    #              dimension is  None the method calculate vocabulary of the all corpus
     def vocabulary_length(self, dimension=None):
         if dimension is None:
             dimension = self.get_n_token()
         return len(list(dict.fromkeys(self.get_token()[:dimension])))
 
     # Returns an array with length of vocabulary of corpus of incremental dimension
-    def incremental_vocabulary_length(self):
+    # ARGS:
+    #   incremental: scale of incrementation, when incremental is None the default value is 1000
+    def incremental_vocabulary_length(self, incremental=None):
+        if incremental is None:
+            incremental = 1000
         vocabulary_length = dict()
-        for i in range(0, self.get_n_token(), CONST_INCREMENTAL):
+        for i in range(0, self.get_n_token(), incremental):
             vocabulary_length[i] = self.vocabulary_length(i)
         return vocabulary_length
 
     # Returns the hapax distribution for a portion of the corpus
     # Args:
-    #   dimension: length of the corpus whose hapax distribution is measured
+    #   dimension: length of the corpus whose hapax distribution is measured, when dimension
+    #               is None the method calculate the hapax distribution of the all corpus
     def hapax_distribution(self, dimension=None):
         if dimension is None:
             dimension = self.get_n_token()
-        temp = dict()  # keys-> word | value -> f(word)
-        output = []  # f(word) = 1
-        token_l = self.get_token()[:dimension]
-        for i in token_l:
-            if i not in temp:
-                temp[i] = 0
-            temp[i] += 1
-        for i in temp:
-            if temp[i] == 1:
-                output.append(i)
+        token_freq = dict()  # keys-> word | value -> f(word)
+        output = []  # list of hapax
+        for token in self.get_token()[:dimension]:  # calculating frequencies
+            if token not in token_freq:
+                token_freq[token] = 0
+            token_freq[token] += 1
+        for freq in token_freq:  # copying in the output only the hapax
+            if token_freq[freq] == 1:
+                output.append(freq)
         return len(output)
 
     # Returns an array with hapax distribution of corpus of incremental dimension
-    def incremental_hapax_distribution(self):
+    # ARGS:
+    #   incremental: scale of incrementation, when incremental is None the default value is 1000
+    def incremental_hapax_distribution(self, incremental=None):
+        if incremental is None:
+            incremental = 1000
         hapax_distribution = dict()
-        for i in range(0, self.get_n_token(), CONST_INCREMENTAL):
+        for i in range(0, self.get_n_token(), incremental):
             hapax_distribution[i] = self.hapax_distribution(i)
         return hapax_distribution
 
     # Returns ratio between A POS-category and B POS-category
+    # ARGS:
+    #   A: first POS category used to calculate the ratio
+    #   B: second POS category used to calculate the ratio
     def ratio(self, a, b):
         a_count = 0
         b_count = 0
-        pos_tag_l = self.get_pos_tag_universal()
-        for i in pos_tag_l:
-            if i[1] == a.upper():
+        for tag in self.get_pos_tag_universal():
+            if tag[1] == a.upper():
                 a_count += 1
-            elif i[1] == b.upper():
+            elif tag[1] == b.upper():
                 b_count += 1
         return a_count / b_count
 
     # Returns an ordinated(most common to less common) list containing the tag of the pos tagged corpus
+    # ARGS:
+    #   dimension: length of the corpus whose most frequent POS category is measured, when dimension
+    #               is None the method calculate the most frequent POS category of the all corpus
     def most_frequent_pos(self, dimension=None):
         if dimension is None:
             dimension = self.get_n_token()
@@ -205,12 +208,12 @@ class Corpus:
         if pos_tag_l[len(pos_tag_l) - 1][1] not in freq_category:
             freq_category[pos_tag_l[len(pos_tag_l) - 1][1]] = 0
         freq_category[pos_tag_l[len(pos_tag_l) - 1][1]] += 1
-        for i in freq_bigrams:
-            prob[i] = freq_bigrams[i] / freq_category[i[1]]
+        for freq in freq_bigrams:
+            prob[freq] = freq_bigrams[freq] / freq_category[freq[1]]
         prob = list(sorted(prob.items(), key=itemgetter(1), reverse=True))
         # inverts element in tuples (P[Noun|Det] --> f[Det|Noun]/f[Det])
-        for i in range(len(prob)):
-            prob[i] = (prob[i][0][::-1], prob[i][1])
+        for element in range(len(prob)):
+            prob[element] = (prob[element][0][::-1], prob[element][1])
         return prob
 
     # Returns an ordinated(highest to lowest) list containing the local mutual information of every bigram in the corpus
@@ -230,18 +233,18 @@ class Corpus:
         if pos_tag_l[len(pos_tag_l) - 1][0] not in freq_word:
             freq_word[pos_tag_l[len(pos_tag_l) - 1][0]] = 0
         freq_word[pos_tag_l[len(pos_tag_l) - 1][0]] += 1
-        for i in freq_bigrams:
+        for freq in freq_bigrams:
             # LMI(<u, v>) = f(<u, v>) * (log2((f<u, v> * N )/ (f(u) * f(v))))
-            lmi[i] = freq_bigrams[i] * \
+            lmi[freq] = freq_bigrams[freq] * \
                      (math.log(
-                         ((freq_bigrams[i] * len(self.get_pos_tag_universal())) / (freq_word[i[0]] * freq_word[i[1]])),
+                         ((freq_bigrams[freq] * len(self.get_pos_tag_universal())) / (freq_word[freq[0]] * freq_word[freq[1]])),
                          2))
         lmi = list(sorted(lmi.items(), key=itemgetter(1), reverse=True))
         return lmi
 
     # Returns a ordered list (most frequent to less frequent) of the requested category of word and their frequencies
     # ARGS:
-    #   category:
+    #   category: the category to look for in the corpus:
     #       -PERSON: to find persons name
     #       -GPE: to find locations
     #       -ORGANIZATION: to find organizations
@@ -292,8 +295,8 @@ class Corpus:
     # Returns an ordinated (decreasing by their frequencies) lists of token of the specified grammar category and their frequencies
     # PARAM:
     #   category: the grammar category that the user is looking for
-    #   content: the word that should be in the same sentence as the token of the specified grammar category
-    #           , when content = None the method returns tokens of specified grammar category of the all corpus
+    #   content: the word that should be in the same sentence as the token of the specified grammar category,
+    #            when content is None the method returns tokens of specified grammar category of the all corpus
     def find_grammar_category(self, category, content=None):
         word_list = list()  # list of the word of the requested category
         output = dict()  # dictionary containing the frequencies of the requested word
@@ -359,7 +362,6 @@ class Corpus:
         for date in temp_list:
             output.append(datetime.strptime(date, to_date_format[format0] + "-" + to_date_format[format1] + "-" +
                                             to_date_format[format2]))
-            print(date, format0, format1, format2)
         return output
 
     # Returns an ordinated (decreasing by their frequencies) lists of datetime object and their frequencies
@@ -474,7 +476,6 @@ class Corpus:
         for sentence in sentences:
             prob = 1.0  # initial probability
             tokens = word_tokenize(sentence)
-            print(len(tokens), tokens, "\n")
             if (min_length <= len(tokens) <= max_length) or (min_length is None and max_length is None) or (min_length is None and len(tokens) <= max_length) or (min_length <= len(tokens) and max_length is None):
                 for token in tokens:
                     prob *= (freq[token] * 1.0 / self.get_n_token() * 1.0)
